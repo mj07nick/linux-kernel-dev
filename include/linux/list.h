@@ -1,31 +1,16 @@
 /**
  * TODO: Have to add the following functions and macros related to list:-
- *		> list_add_tail
  *		> __list_add_rcu
  *		> list_add_rcu
  *		> list_add_tail_rcu
- *		> __list_del
- *		> list_del
  *		> list_del_rcu
- *		> list_replace
- *		> list_replace_init
  *		> list_replace_rcu
- *		> list_move
- *		> list_move_tail
- *		> list_is_last
- *		> list_empty
  *		> list_empty_careful
- *		> list_is_singular
  *		> __list_splice
  *		> list_splice
  *		> list_splice_init
  *		> list_splice_init_rcu
  *		> list_first_entry
- *		> list_for_each
- *		> __list_for_each
- *		> list_for_each_prev
- *		> list_for_each_safe
- *		> list_for_each_prev_safe
  *		> list_for_each_entry
  *		> list_for_each_entry_reverse
  *		> list_prepare_entry
@@ -43,7 +28,6 @@
  * TODO: Have to add the fully supported functions and macros related to hash
  *	 tables.
  */
-
 
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
@@ -160,6 +144,11 @@ static inline void list_add(struct list_head * new, struct list_head * head){
 	__list_add(new, head, head->next);
 }
 
+static inline void list_add_tail(struct list_head *new,
+				struct list_head * head){
+	__list_add(new, head->prev, head);
+}
+
 /**
  * list_for_each - A simple for loop to iterate all over the linked list.
  * @pos - A temporary variable of type 'struct list_head' where we can store the
@@ -170,4 +159,66 @@ static inline void list_add(struct list_head * new, struct list_head * head){
 #define list_for_each(pos, head) \
 	for((pos) = (head)->next; (pos)!=(head); (pos) = pos->next)
 
+#define list_for_each_prev(pos, head) \
+	for((pos) = (head)->pre  v; (pos)!=(head); (pos) = pos->prev)
+
+static inline void __list_del(struct list_head * prev, struct list_head * next){
+	prev->next = next;
+	next->prev = prev;
+}
+
+static inline void list_del(struct list_head * ptr){
+	__list_del(ptr->prev, ptr->next);
+}
+
+static inline void list_del_init(struct list_head * ptr){
+	__list_del(ptr->prev, ptr->next);
+	INIT_LIST_HEAD(ptr);
+}
+
+static inline void list_replace(struct list_head * old, struct list_head * new){
+	new->prev = old->prev;
+	new->next = old->next;
+	new->next->prev = new;
+	new->prev->next = new;
+}
+
+static inline void list_replace_init(struct list_head * old,
+					struct list_head * new){
+	list_replace(old, new);
+	INIT_LIST_HEAD(old);
+}
+
+static inline int list_empty(struct list_head * head){
+	return head == head->next;
+}
+
+static inline void list_move(struct list_head * list, struct list_head * head){
+	__list_del(list->prev, list->next);
+	list_add(list, head);
+}
+
+static inline void list_move_tail(struct list_head * list,
+					struct list_head * head){
+	__list_del(list->prev, list->next);
+	list_add_tail(list, head);
+}
+
+static inline int list_is_last(struct list_head * list, struct list_head * head){
+	return list == head->prev;
+}
+
+static inline int list_is_singular(struct list_head * head){
+	return !(list_empty(head)) && (head->next == head->prev);
+}
+
+#define list_for_each_safe(pos, n, head) \
+	for((pos) = (head)->next, n = (pos)->next; pos!=(head); \
+		pos=n, n=pos->next)
+
+#define list_for_each_prev_safe(pos, n, head) \
+	for((pos)=(head)->prev, n = pos->prev; (pos)!=(head); \
+		pos = n; n = pos->prev)
+
 #endif
+
